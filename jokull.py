@@ -14,9 +14,8 @@ def do_delete(session, args):
 
 def do_get(session, args):
     f = session.get(args[2], args[3])
-    outf = open("output", "wb")
-    shutil.copyfileobj(f, outf)
-    outf.close()
+    with open(args[4], "wb") as outf:
+        shutil.copyfileobj(f, outf)
 
 def do_jobs(session, args):
     session.list_jobs(args[2])
