@@ -20,9 +20,6 @@ def do_get(session, args):
 def do_jobs(session, args):
     session.list_jobs(args[2])
 
-def do_list(session, args):
-    vaults = session.list_vaults()
-
 def do_request(session, args):
     if len(args) >= 4:
         session.new_job(args[2], archive_id=args[3])
@@ -33,14 +30,18 @@ def do_upload(session, args):
     with open(args[3], "rb") as f:
         session.upload_archive(args[2], f)
 
+def do_vaults(session, args):
+    vaults = session.list_vaults()
+    pprint.pprint(vaults)
+
 Commands = {
     "create": do_create,
     "delete": do_delete,
     "get": do_get,
     "jobs": do_jobs,
-    "list": do_list,
     "request": do_request,
     "upload": do_upload,
+    "vaults": do_vaults,
 }
 
 def main():
