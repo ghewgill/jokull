@@ -1,3 +1,4 @@
+import pprint
 import shutil
 import sys
 
@@ -18,17 +19,20 @@ def do_get(session, args):
         shutil.copyfileobj(f, outf)
 
 def do_jobs(session, args):
-    session.list_jobs(args[2])
+    jobs = session.list_jobs(args[2])
+    pprint.pprint(jobs)
 
 def do_request(session, args):
     if len(args) >= 4:
-        session.new_job(args[2], archive_id=args[3])
+        r = session.new_job(args[2], archive_id=args[3])
     else:
-        session.new_job(args[2])
+        r = session.new_job(args[2])
+    print(r)
 
 def do_upload(session, args):
     with open(args[3], "rb") as f:
-        session.upload_archive(args[2], f)
+        r = session.upload_archive(args[2], f)
+        print(r)
 
 def do_vaults(session, args):
     vaults = session.list_vaults()

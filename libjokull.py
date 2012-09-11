@@ -117,7 +117,7 @@ class Jokull:
 
     def delete_archive(self, vault, archive):
         r = self.request("DELETE", "/-/vaults/{}/archives/{}".format(vault, archive))
-        print(r.info())
+        return r.code == 204
 
     def get(self, vault, jobid):
         r = self.request("GET", "/-/vaults/{}/jobs/{}/output".format(vault, jobid))
@@ -125,11 +125,11 @@ class Jokull:
 
     def list_jobs(self, vault):
         r = self.request("GET", "/-/vaults/{}/jobs".format(vault))
-        print(r.read())
+        return json.loads(r.read().decode("UTF-8"))
 
     def list_vaults(self):
         r = self.request("GET", "/-/vaults")
-        print(r.read())
+        return json.loads(r.read().decode("UTF-8"))
 
     def new_job(self, vault, archive_id=None):
         req = {
@@ -138,15 +138,13 @@ class Jokull:
         if archive_id:
             req["ArchiveId"] = archive_id
         r = self.request("POST", "/-/vaults/{}/jobs".format(vault), data=json.dumps(req).encode("UTF-8"))
-        print(r.info())
-        print(r.read())
+        return r.info()
 
     def upload_archive(self, vault, data):
         if not isinstance(data, str):
             data = data.read()
         r = self.request("POST", "/-/vaults/{}/archives".format(vault), data=data)
-        print(r.info())
-        print(r.read())
+        return r.info()
 
     def request(self, method, uri, data=None):
         now = time.gmtime(time.time())
