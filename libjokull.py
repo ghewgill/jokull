@@ -93,12 +93,12 @@ def make_string_to_sign(datetime, date, region, service, canonical_request):
         "AWS4-HMAC-SHA256\n" +
         datetime + "\n" +
         "{}/{}/{}/aws4_request\n".format(date, region, service) +
-        hashlib.sha256(canonical_request.encode()).hexdigest()
+        hashlib.sha256(canonical_request.encode("UTF-8")).hexdigest()
     )
 
 def make_authorization_header(access, secret, date, region, service, signed_headers, string_to_sign):
-    signing_key = hmac.new(hmac.new(hmac.new(hmac.new(("AWS4" + secret).encode(), date.encode(), digestmod=hashlib.sha256).digest(), region.encode(), digestmod=hashlib.sha256).digest(), service.encode(), digestmod=hashlib.sha256).digest(), b"aws4_request", digestmod=hashlib.sha256).digest()
-    signature = hmac.new(signing_key, string_to_sign.encode(), digestmod=hashlib.sha256).hexdigest()
+    signing_key = hmac.new(hmac.new(hmac.new(hmac.new(("AWS4" + secret).encode("UTF-8"), date.encode("UTF-8"), digestmod=hashlib.sha256).digest(), region.encode("UTF-8"), digestmod=hashlib.sha256).digest(), service.encode("UTF-8"), digestmod=hashlib.sha256).digest(), b"aws4_request", digestmod=hashlib.sha256).digest()
+    signature = hmac.new(signing_key, string_to_sign.encode("UTF-8"), digestmod=hashlib.sha256).hexdigest()
     return "AWS4-HMAC-SHA256 Credential={}/{}/{}/{}/aws4_request, SignedHeaders={}, Signature={}".format(access, date, region, service, signed_headers, signature)
 
 class Jokull:
@@ -137,7 +137,7 @@ class Jokull:
         }
         if archive_id:
             req["ArchiveId"] = archive_id
-        r = self.request("POST", "/-/vaults/{}/jobs".format(vault), data=json.dumps(req).encode())
+        r = self.request("POST", "/-/vaults/{}/jobs".format(vault), data=json.dumps(req).encode("UTF-8"))
         print(r.info())
         print(r.read())
 
