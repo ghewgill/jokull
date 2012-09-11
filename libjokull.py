@@ -7,6 +7,16 @@ import time
 import urllib.parse
 import urllib.request
 
+class GlacierError(Exception):
+    def __init__(self, httpcode, code, message, type):
+        Exception.__init__(self, httpcode, code, message, type)
+        self.httpcode = httpcode
+        self.code = code
+        self.message = message
+        self.type = type
+    def __str__(self):
+        return """GlacierError(httpcode={} code={} message="{}" type={})""".format(self.httpcode, self.code, self.message, self.type)
+
 class TreeHash:
     BLOCK_SIZE = 2 ** 20
     def __init__(self, hasher=hashlib.sha256):
@@ -161,6 +171,7 @@ class Jokull:
         try:
             r = urllib.request.urlopen(req, data)
         except urllib.error.HTTPError as x:
-            print(x.read())
-            raise
+            r = x.read().decode("UTF-8")
+            e = json.loads(r)
+            raise GlacierError(x.code, e["code"], e["message"], e["type"]) from x
         return r
