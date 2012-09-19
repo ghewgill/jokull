@@ -13,6 +13,10 @@ def do_delete(out, session, args):
     else:
         session.delete_vault(args[2])
 
+def do_describe(out, session, args):
+    vault = session.describe_vault(args[2])
+    pprint.pprint(vault, stream=out)
+
 def do_get(out, session, args):
     f = session.get(args[2], args[3])
     with open(args[4], "wb") as outf:
@@ -41,6 +45,7 @@ def do_vaults(out, session, args):
 Commands = {
     "create": do_create,
     "delete": do_delete,
+    "describe": do_describe,
     "get": do_get,
     "jobs": do_jobs,
     "request": do_request,
