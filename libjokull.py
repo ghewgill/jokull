@@ -148,10 +148,13 @@ class Jokull:
         r = self.request("POST", "/-/vaults/{}/jobs".format(vault), data=json.dumps(req).encode("UTF-8"))
         return r.info()
 
-    def upload_archive(self, vault, data):
-        if not isinstance(data, str):
+    def upload_archive(self, vault, data, description=None):
+        if not isinstance(data, bytes):
             data = data.read()
-        r = self.request("POST", "/-/vaults/{}/archives".format(vault), data=data)
+        headers = []
+        if description:
+            headers.append(("x-amz-archive-description", description))
+        r = self.request("POST", "/-/vaults/{}/archives".format(vault), headers=headers, data=data)
         return r.info()
 
     def request(self, method, uri, headers=None, data=None):
