@@ -119,6 +119,14 @@ class Jokull:
         r = self.request("DELETE", "/-/vaults/{}/archives/{}".format(vault, archive))
         return r.code == 204
 
+    def delete_vault(self, vault):
+        r = self.request("DELETE", "/-/vaults/{}".format(vault))
+        return r.code == 204
+
+    def describe_vault(self, vault):
+        r = self.request("GET", "/-/vaults/{}".format(vault))
+        return json.loads(r.read().decode("UTF-8"))
+
     def get(self, vault, jobid):
         r = self.request("GET", "/-/vaults/{}/jobs/{}/output".format(vault, jobid))
         return r
