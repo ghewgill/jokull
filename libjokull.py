@@ -146,11 +146,13 @@ class Jokull:
         r = self.request("POST", "/-/vaults/{}/archives".format(vault), data=data)
         return r.info()
 
-    def request(self, method, uri, data=None):
+    def request(self, method, uri, headers=None, data=None):
         now = time.gmtime(time.time())
         datetime = time.strftime("%Y%m%dT%H%M%SZ", now)
         date = time.strftime("%Y%m%d", now)
-        headers = [
+        if headers is None:
+            headers = []
+        headers[:0] = [
             ("Host", self.host),
             ("Date", datetime),
             ("x-amz-glacier-version", "2012-06-01"),
