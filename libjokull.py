@@ -1,8 +1,10 @@
+import csv
 import functools
 import hashlib
 import hmac
 import json
 import itertools
+import os
 import time
 import urllib.parse
 import urllib.request
@@ -112,15 +114,28 @@ class Jokull:
                 if a[0] == "secret":
                     self.secret = a[1]
 
+    def log(self, oper, *args):
+        try:
+            lf = open(os.path.join(os.getenv("HOME"), ".glacier", "log"), "a", newline="")
+        except IOError:
+            os.mkdir(os.path.join(os.getenv("HOME"), ".glacier"))
+            lf = open(os.path.join(os.getenv("HOME"), ".glacier", "log"), "a", newline="")
+        writer = csv.writer(lf, lineterminator="\n")
+        writer.writerow((time.time(), oper) + args)
+        lf.close()
+
     def create_vault(self, name):
         r = self.request("PUT", "/-/vaults/{}".format(name))
+        self.log("create_vault", name)
 
     def delete_archive(self, vault, archive):
         r = self.request("DELETE", "/-/vaults/{}/archives/{}".format(vault, archive))
+        self.log("delete_archive", vault, archive)
         return r.code == 204
 
     def delete_vault(self, vault):
         r = self.request("DELETE", "/-/vaults/{}".format(vault))
+        self.log("delete_vault", vault)
         return r.code == 204
 
     def describe_vault(self, vault):
@@ -155,6 +170,7 @@ class Jokull:
         if description:
             headers.append(("x-amz-archive-description", description))
         r = self.request("POST", "/-/vaults/{}/archives".format(vault), headers=headers, data=data)
+        self.log("upload_archive", vault, filename, r.info()["x-amz-archive-id"], r.info()["x-amz-sha256-tree-hash"])
         return r.info()
 
     def request(self, method, uri, headers=None, data=None):
