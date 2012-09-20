@@ -35,7 +35,7 @@ def do_request(out, session, args):
 
 def do_upload(out, session, args):
     with open(args[3], "rb") as f:
-        r = session.upload_archive(args[2], f)
+        r = session.upload_archive(args[2], f, filename=args[3])
         print(r, file=out)
 
 def do_vaults(out, session, args):
