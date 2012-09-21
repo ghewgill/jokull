@@ -45,6 +45,45 @@ def make_authorization_header(access, secret, date, region, service, signed_head
     signature = hmac.new(signing_key, string_to_sign.encode("UTF-8"), digestmod=hashlib.sha256).hexdigest()
     return "AWS4-HMAC-SHA256 Credential={}/{}/{}/{}/aws4_request, SignedHeaders={}, Signature={}".format(access, date, region, service, signed_headers, signature)
 
+class Multipart:
+    def __init__(self, session, vault, partsize, upload_id):
+        self.session = session
+        self.vault = vault
+        self.partsize = partsize
+        self.upload_id = upload_id
+        self.hash = sha256tree.TreeHash()
+        self.offset = 0
+        self.part = b""
+
+    def write(self, data):
+        index = 0
+        while index < len(data):
+            needed = self.partsize - len(self.part)
+            self.part += data[index:index + needed]
+            index += needed
+            if len(self.part) < self.partsize:
+                break
+            self.upload_part()
+
+    def upload_part(self):
+        headers = [
+            ("Content-Range", "bytes {}-{}/*".format(self.offset, self.offset + len(self.part) - 1))
+        ]
+        r = self.session.request("PUT", "/-/vaults/{}/multipart-uploads/{}".format(self.vault, self.upload_id), headers=headers, data=self.part)
+        self.offset += len(self.part)
+        self.hash.update(self.part)
+        self.part = b""
+
+    def finish(self):
+        if self.part:
+            self.upload_part()
+        headers = [
+            ("x-amz-sha256-tree-hash", self.hash.finish().hexdigest()),
+            ("x-amz-archive-size", str(self.offset)),
+        ]
+        r = self.session.request("POST", "/-/vaults/{}/multipart-uploads/{}".format(self.vault, self.upload_id), headers=headers)
+        return r.info()
+
 class Jokull:
     def __init__(self):
         self.host = "glacier.us-east-1.amazonaws.com"
@@ -107,6 +146,19 @@ class Jokull:
 
     def upload_archive(self, vault, data, filename=None, description=None):
         if not isinstance(data, bytes):
+            data.seek(0, os.SEEK_END)
+            size = data.tell()
+            data.seek(0, os.SEEK_SET)
+            if size > 4*1048576:
+                m = self.upload_multipart(vault)
+                while True:
+                    s = data.read(65536)
+                    if not s:
+                        break
+                    m.write(s)
+                r = m.finish()
+                self.log("upload_archive", vault, filename, r["x-amz-archive-id"], r["x-amz-sha256-tree-hash"])
+                return r
             data = data.read()
         headers = []
         if description:
@@ -115,7 +167,15 @@ class Jokull:
         self.log("upload_archive", vault, filename, r.info()["x-amz-archive-id"], r.info()["x-amz-sha256-tree-hash"])
         return r.info()
 
+    def upload_multipart(self, vault, description=None, partsize=4*1048576):
+        headers = [("x-amz-part-size", str(partsize))]
+        if description:
+            headers.append(("x-amz-archive-description", description))
+        r = self.request("POST", "/-/vaults/{}/multipart-uploads".format(vault), headers=headers)
+        return Multipart(self, vault, partsize, r.info()["x-amz-multipart-upload-id"])
+
     def request(self, method, uri, headers=None, data=None):
+        #print(method, uri)
         now = time.gmtime(time.time())
         datetime = time.strftime("%Y%m%dT%H%M%SZ", now)
         date = time.strftime("%Y%m%d", now)

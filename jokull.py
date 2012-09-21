@@ -34,8 +34,18 @@ def do_request(out, session, args):
     print(r, file=out)
 
 def do_upload(out, session, args):
-    with open(args[3], "rb") as f:
-        r = session.upload_archive(args[2], f, filename=args[3])
+    if len(args) >= 4:
+        with open(args[3], "rb") as f:
+            r = session.upload_archive(args[2], f, filename=args[3])
+            print(r, file=out)
+    else:
+        m = session.upload_multipart(args[2])
+        while True:
+            s = sys.stdin.read(65536)
+            if not s:
+                break
+            m.write(s)
+        r = m.finish()
         print(r, file=out)
 
 def do_vaults(out, session, args):
