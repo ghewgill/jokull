@@ -1,5 +1,4 @@
 import csv
-import functools
 import hashlib
 import hmac
 import json
@@ -8,6 +7,8 @@ import os
 import time
 import urllib.parse
 import urllib.request
+
+import sha256tree
 
 class GlacierError(Exception):
     def __init__(self, httpcode, code, message, type):
@@ -18,65 +19,6 @@ class GlacierError(Exception):
         self.type = type
     def __str__(self):
         return """GlacierError(httpcode={} code={} message="{}" type={})""".format(self.httpcode, self.code, self.message, self.type)
-
-class TreeHash:
-    BLOCK_SIZE = 2 ** 20
-    def __init__(self, hasher=hashlib.sha256):
-        self.hasher = hasher
-        self.tree = []
-        self.hash = self.hasher()
-        self.len = 0
-    def update(self, data):
-        if len(data) == 0:
-            return
-        index = 0
-        while True:
-            needed_for_block = TreeHash.BLOCK_SIZE - self.len
-            next_chunk = data[index:index+needed_for_block]
-            index += len(next_chunk)
-            self.len += len(next_chunk)
-            self.hash.update(next_chunk)
-            if self.len < TreeHash.BLOCK_SIZE:
-                break
-            assert self.len == TreeHash.BLOCK_SIZE, self.len
-            for i in range(len(self.tree)):
-                if self.tree[i] is None:
-                    self.tree[i] = self.hash
-                    break
-                else:
-                    self.hash = self.hasher(self.tree[i].digest() + self.hash.digest())
-                    self.tree[i] = None
-            else:
-                self.tree.append(self.hash)
-            #print([x.hexdigest() if x is not None else None for x in self.tree])
-            self.hash = self.hasher()
-            self.len = 0
-    def finish(self):
-        if self.len > 0:
-            self.tree = [self.hash] + self.tree
-        if self.tree:
-            return functools.reduce(lambda x, y: self.hasher(y.digest() + x.digest()), [x for x in self.tree if x is not None])
-        else:
-            return self.hash
-
-def treehash(data):
-    h = TreeHash()
-    h.update(data)
-    return h.finish()
-
-def treehash_simple(data):
-    if not data:
-        return hashlib.sha256()
-    hashes = [hashlib.sha256(data[x:x+1048576]) for x in range(0, len(data), 1048576)]
-    while len(hashes) > 1:
-        newhashes = []
-        for i in range(0, len(hashes), 2):
-            if i+1 < len(hashes):
-                newhashes.append(hashlib.sha256(hashes[i].digest() + hashes[i+1].digest()))
-            else:
-                newhashes.append(hashes[i])
-        hashes = newhashes
-    return hashes[0]
 
 def make_canonical_request(method, uri, headers, query=None, data=None):
     sorted_headers = sorted((k.lower(), v) for k, v in headers)
@@ -187,7 +129,7 @@ class Jokull:
         if data is not None:
             headers.append(("Content-Length", str(len(data))))
             headers.append(("x-amz-content-sha256", hashlib.sha256(data).hexdigest()))
-            headers.append(("x-amz-sha256-tree-hash", treehash(data).hexdigest()))
+            headers.append(("x-amz-sha256-tree-hash", sha256tree.treehash(data).hexdigest()))
         canonical_request, signed_headers = make_canonical_request(method, uri, headers, data=data)
         string_to_sign = make_string_to_sign(datetime, date, "us-east-1", "glacier", canonical_request)
         #print(repr(canonical_request))

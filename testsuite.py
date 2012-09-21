@@ -5,6 +5,7 @@ import os
 import random
 import re
 
+import sha256tree
 import libjokull
 import jokull
 
@@ -217,10 +218,10 @@ def test_treehash():
     for x in [0, 1, 1000, 1048575, 1048576, 1048577, 6815744, 10485760, 9999999]:
         data = open("/dev/urandom", "rb").read(x)
         assert len(data) == x
-        sh = libjokull.treehash_simple(data).digest()
-        fh = libjokull.treehash(data).digest()
+        sh = sha256tree.treehash_simple(data).digest()
+        fh = sha256tree.treehash(data).digest()
         assert fh == sh, x
-        th = libjokull.TreeHash()
+        th = sha256tree.TreeHash()
         while data:
             part = data[:random.randrange(2*1048576+1)]
             th.update(part)
