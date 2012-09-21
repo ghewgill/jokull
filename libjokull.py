@@ -48,7 +48,7 @@ def make_authorization_header(access, secret, date, region, service, signed_head
 class Jokull:
     def __init__(self):
         self.host = "glacier.us-east-1.amazonaws.com"
-        with open("/home/greg/.s3crc") as f:
+        with open(os.path.join(os.getenv("HOME"), ".s3crc")) as f:
             for s in f:
                 a = s.split()
                 if a[0] == "access":
