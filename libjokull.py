@@ -150,7 +150,7 @@ class Jokull:
             size = data.tell()
             data.seek(0, os.SEEK_SET)
             if size > 4*1048576:
-                m = self.upload_multipart(vault)
+                m = self.upload_multipart(vault, description=description or filename)
                 while True:
                     s = data.read(65536)
                     if not s:
@@ -161,8 +161,7 @@ class Jokull:
                 return r
             data = data.read()
         headers = []
-        if description:
-            headers.append(("x-amz-archive-description", description))
+        headers.append(("x-amz-archive-description", description or filename))
         r = self.request("POST", "/-/vaults/{}/archives".format(vault), headers=headers, data=data)
         self.log("upload_archive", vault, filename, r.info()["x-amz-archive-id"], r.info()["x-amz-sha256-tree-hash"])
         return r.info()
