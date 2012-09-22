@@ -161,7 +161,7 @@ class Jokull:
                 return r
             data = data.read()
         headers = []
-        headers.append(("x-amz-archive-description", description or filename))
+        headers.append(("x-amz-archive-description", str(description or filename)))
         r = self.request("POST", "/-/vaults/{}/archives".format(vault), headers=headers, data=data)
         self.log("upload_archive", vault, filename, r.info()["x-amz-archive-id"], r.info()["x-amz-sha256-tree-hash"])
         return r.info()
